@@ -1,0 +1,98 @@
+create table users (
+users_id serial primary key, 
+login varchar,
+password varchar
+);
+
+INSERT INTO users (login, password) VALUES
+('none', 'none');
+
+
+-- Readers table
+CREATE TABLE readers (
+    reader_id SERIAL PRIMARY KEY,
+    reader_name VARCHAR(255) NOT NULL,
+    birth_date DATE NOT NULL,
+    workplace VARCHAR(255),
+    phone VARCHAR(50) NOT NULL,
+    address VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL
+);
+
+-- Books table
+CREATE TABLE books (
+    book_id serial PRIMARY KEY,
+    author VARCHAR(255) NOT NULL,
+    book_name VARCHAR(500) NOT NULL,
+    type VARCHAR(100) NOT NULL,
+    genre VARCHAR(100),
+    publisher VARCHAR(255) NOT NULL,
+    publication_year INTEGER NOT NULL,
+    page_count INTEGER NOT NULL,
+    total_quantity INTEGER NOT NULL CHECK (total_quantity >= 0),
+    available_quantity INTEGER NOT NULL CHECK (available_quantity >= 0)
+);
+
+-- Book loans table
+CREATE TABLE loans (
+    loan_id SERIAL PRIMARY KEY,
+    reader_id INTEGER REFERENCES readers(reader_id) ON DELETE CASCADE,
+    book_id integer REFERENCES books(book_id) ON DELETE CASCADE,
+    quantity INTEGER NOT NULL CHECK (quantity > 0),
+    loan_date DATE NOT NULL,
+    return_date DATE
+);
+
+-- View for calculating overdue days
+CREATE OR REPLACE VIEW loan_with_overdue AS 
+SELECT 
+    *,
+    CASE 
+        WHEN return_date IS NULL AND CURRENT_DATE > loan_date + 14 
+        THEN CURRENT_DATE - (loan_date + 14)
+        ELSE 0 
+    END AS overdue_days
+FROM loans;
+
+-- Indexes for performance optimization
+CREATE INDEX idx_reader_name ON readers (reader_name);
+CREATE INDEX idx_book_title ON books (book_name);
+CREATE INDEX idx_loan_dates ON loans (loan_date, return_date);
+
+-- Заполнение таблицы "Читатели"
+INSERT INTO readers (reader_name, birth_date, workplace, phone, address, email) 
+VALUES 
+('Бессмертный Кощей Спиридонович', '1999-12-12', 'Охранное агентство Аллигатор, сторож', '+7(999)888-88-88', 'г.Ростов-на-Дону, Красноармейская, 13', 'kosha@yandex.ru'),
+('Царевич Иван Иванович', '2000-03-09', 'РГУПС, лаборант', '+7(888)999-99-99', 'г.Ростов-на-Дону, Красноармейская, 15', 'vanya@yandex.ru'),
+('Премудрая Василиса Егоровна', '1995-10-25', 'ЮФУ, преподаватель', '+7(888)777-77-77', 'г.Ростов-на-Дону, Красноармейская, 15', 'lisa@yandex.ru'),
+('Свистунов Соловей Карпович', '1998-04-01', 'Кинотеатр Чарли, администратор', '+7(777)888-88-88', 'г.Ростов-на-Дону, Красноармейская, 21', 'mrsvist@yandex.ru'),
+('Горыныч Змей Драконович', '2002-08-19', 'Пожарная часть № 5, пожарный', '+7(777)999-99-99', 'г.Ростов-на-Дону, Красноармейская, 17', 'ogon@yandex.ru'),
+('Болотная Кикимора Аристарховна', '2000-02-04', 'Аквапарк H2O, администратор', '+7(888)666-66-66', 'г.Ростов-на-Дону, Красноармейская, 18', 'kulic@yandex.ru'),
+('Муромец Илья Иванович', '2004-11-30', 'ДГТУ, студент', '+7(999)666-66-66', 'г.Ростов-на-Дону, Красноармейская, 25', 'primeta@yandex.ru'),
+('Богатырев Добрыня Никитич', '1997-06-24', 'Пожарная часть № 5, пожарный', '+7(666)999-99-99', 'г.Ростов-на-Дону, Красноармейская, 20', 'upalotjalsya@yandex.ru');
+
+
+
+-- Заполнение таблицы "Книги"
+INSERT INTO books
+VALUES 
+(00000289, 'Твен М.', 'Никогда не спорьте с идиотами!', 'художественная', 'сатира', 'ЭКСМО', 2024, 160, 5, 4),
+(00000498, 'Нестерова Н', 'Жребий праведных грешниц', 'художественная', 'исторический роман', 'АСТ', 2024, 784, 6, 5),
+(00000369, 'Булгаков М', 'Мастер и Маргарита. Вечные истории', 'художественная', 'сатира', 'Манн, Иванов и Фербер', 2024, 512, 3, 2),
+(00000124, 'Ожегов С. И.', 'Толковый словарь русского языка', 'словари и справочники', 'филология', 'АСТ', 2020, 736, 10, 8),
+(00000228, 'Надежкина Н.В.', 'Японский язык. 4-в-1: грамматика, разговорник, японско-русский словарь, русско-японский словарь', 'учебник', 'филология', 'Lingua', 2022, 288, 3, 3),
+(00000149, 'Окошкин В.Т.', 'Англо-русский русско-английский словарь', 'словари и справочники', 'филология', 'АСТ', 2000, 96, 10, 10),
+(00000114, 'Перышкин И.М.', 'Физика. 8 класс. Базовый уровень', 'учебник', 'физика', 'Просвещение', 2022, 257, 10, 9),
+(00000098, 'Кремер Н.Ш.', 'Математика для колледжей 12-е изд., пер. и доп. Учебное пособие для СПО', 'учебник', 'математика', 'Просвещение', 2018, 450, 15, 15),
+(00000087, 'Фленов М. Е.', 'Библия C#. 6-е издание', 'словари и справочники', 'ИТ', 'BHV', 2000, 512, 2, 1);
+
+-- Заполнение таблицы "Выдачи"
+INSERT INTO loans (reader_id, book_id, quantity, loan_date, return_date)
+VALUES 
+(2, 00000289, 1, '2024-10-12', NULL),  -- Царевич Иван Иванович
+(6, 00000114, 1, '2024-09-05', '2024-10-10'),  -- Болотная Кикимора Аристарховна
+(7, 00000087, 1, '2024-08-25', '2024-09-06'),  -- Муромец Илья Иванович
+(7, 00000087, 1, '2024-09-06', NULL),          -- Муромец Илья Иванович
+(3, 00000369, 1, '2024-11-07', NULL),          -- Премудрая Василиса Егоровна
+(1, 00000498, 1, '2024-10-25', NULL),          -- Бессмертный Кощей Спиридонович
+(7, 00000124, 2, '2024-09-10', NULL);          -- Муромец Илья Иванович
